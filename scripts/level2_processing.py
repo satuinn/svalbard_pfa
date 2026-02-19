@@ -1,28 +1,8 @@
-import subprocess
 from pathlib import Path
 import numpy as np
 import shutil
 
-RSGPR_PATH = "rsgpr"
-
-def locate_rsgpr():
-    """Try to locate an installation of rsgpr and check that it's the right version"""
-    global RSGPR_PATH
-    import socket
-
-    if socket.gethostname() == "erik-ryzen":
-        new_path = Path("~/Projects/UiO/rsgpr/target/release/rsgpr").expanduser()
-        if not new_path.is_file():
-            return
-        RSGPR_PATH = new_path
-
-    result = subprocess.run([RSGPR_PATH, "--version"], capture_output=True)
-    if result.returncode != 0:
-        raise AssertionError(f"Cannot find rsgpr")
-
-    version = result.stdout.decode().replace("rsgpr", "").strip()
-    required = "0.4.1"
-    assert version >= required, f"Incompatible rsgpr version found: {version}. Needs >= {required}"
+REQUIRED_RSGPR_VERSION = "0.4.1"
 
 def lowfreq_corr(x: np.ndarray, fs: float, fmin: float = 0.003, fmax: float = 0.3, alpha: float = 1500., sigma: float = 0.02, min_att: float = 1e-3):
     """Get a correction factor for low-frequency undulations in a signal.
@@ -112,6 +92,7 @@ def lowfreq_corr(x: np.ndarray, fs: float, fmin: float = 0.003, fmax: float = 0.
 
     return x - x_clean[:N]
 
+
 def run_rsgpr(
     input_filepath: Path | str,
     output_filepath: Path | str,
@@ -134,37 +115,25 @@ def run_rsgpr(
     medium_velocity
         The assumed velocity of the subsurface in m/ns
     """
+    import rsgpr
+
+    required_ver = "0.4.1"
+    assert rsgpr.version >= required_ver, f"Incompatible rsgpr version found: {version}. Needs >= {required_ver}"
+
     if not Path(input_filepath).is_file():
         raise ValueError(f"Cannot find {input_filepath}")
         
-    locate_rsgpr()
-
     output_filepath = Path(output_filepath)
     tmp_path = output_filepath.with_name(output_filepath.name + ".tmp")
-    cmds = (
-        [
-            RSGPR_PATH,
-            "-v",
-            f"{medium_velocity}",
-            "--steps",
-            ",".join(steps),
-            "--filepath",
-            str(input_filepath),
-            "--output",
-            str(tmp_path),
-        ]
-        + ((["--dem", str(dem_path)]) if dem_path is not None else [])
-    )
 
-    result = subprocess.run(
-        cmds,
-        capture_output=True,
+    rsgpr.run_cli(
+        filepath=str(input_filepath),
+        velocity=medium_velocity,
+        steps=steps,
+        output=str(tmp_path),
+        quiet=True,
+        dem=str(dem_path) if dem_path is not None else None,
     )
-    if result.returncode != 0:
-        raise ValueError(f"rsgpr failed: {result.stderr}")
-
-    log_filepath = Path(output_filepath).with_suffix(".log")
-    log_filepath.write_text(f"stdout:\n{result.stdout.decode()}\n\n\nstderr:\n{result.stderr.decode()}")
 
     shutil.move(tmp_path, output_filepath)
 
