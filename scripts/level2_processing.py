@@ -317,7 +317,7 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
     
 
 
-def process_data(redo: bool = False):
+def process_all_data(redo: bool = False):
     """Process (level2) GPR data using rsgpr.
 
     Parameters
@@ -347,4 +347,4 @@ def process_data(redo: bool = False):
 
 
 if __name__ == "__main__":
-    process_data()
+    process_all_data()
