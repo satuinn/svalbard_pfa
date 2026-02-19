@@ -17,7 +17,7 @@ def locate_rsgpr():
         RSGPR_PATH = new_path
 
 def lowfreq_corr(x: np.ndarray, fs: float, fmin: float = 0.003, fmax: float = 0.3, alpha: float = 1500., sigma: float = 0.02, min_att: float = 1e-3):
-    """Get a correction factor for low-frequency undulations.
+    """Get a correction factor for low-frequency undulations in a signal.
 
     Parameters
     ----------
@@ -171,7 +171,8 @@ def normalize(data: np.ndarray, contrast: float = 0.9):
 
 
 def fix_power_variation(filepath: Path):
-    """Correct for variations in power in a dataset. This will overwrite the original data."""
+    """Correct for horizontal variations in power in a dataset.
+    This will overwrite the original data."""
     import xarray as xr
     new_filepath = filepath.with_name(filepath.name + ".tmp")
     with xr.open_dataset(filepath) as data:
@@ -207,8 +208,6 @@ def generate_jpgs(processed_filepath: Path, redo: bool = False):
         The filepath to the processed (.nc) data.
     redo
         Reprocess data despite already existing.
-    fix_power_variation
-        Fix fluctuations in transmitted/received power by estimating it on the bottom 10 samples
     """
     jpg_path = processed_filepath.with_name(processed_filepath.stem + ".jpg")
     if jpg_path.is_file() and not redo:
@@ -216,7 +215,6 @@ def generate_jpgs(processed_filepath: Path, redo: bool = False):
 
     import xarray as xr
     import PIL.Image
-
 
     with xr.open_dataset(processed_filepath) as data:
         arr = normalize(data.data.values)
@@ -246,7 +244,6 @@ def subsetting(radar_key: str) -> tuple[int, int] | None:
         return (subset, -1)
     else:
         return subset
-            
         
 
 def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_key: str | None = None):
@@ -312,10 +309,8 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
     if run_fix_power_variation:
         fix_power_variation(output_filepath)
 
-
     generate_jpgs(output_filepath, redo=True)
     
-
 
 def process_all_data(redo: bool = False):
     """Process (level2) GPR data using rsgpr.
