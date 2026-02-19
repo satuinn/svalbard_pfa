@@ -210,6 +210,43 @@ def subsetting(radar_key: str) -> tuple[int, int] | None:
     """Get the predetermined trace subsetting information for a given radar_key,
      or None if no subsetting should be done."""
     subsets = {
+        # 2007
+        "austfonna-profile-2007-800MHz-mala-01": (0, 5345),
+        "austfonna-profile-2007-800MHz-mala-02": (15890, -1),
+        "austfonna-profile-2007-800MHz-mala-05": (13421, -1),
+        # 2008
+        "austfonna-profile-2008-800MHz-mala-07": (0, 11278),
+        "austfonna-profile-2008-800MHz-mala-05": (0, 5798),
+        "austfonna-profile-2008-800MHz-mala-04": (0, 12834),
+        "austfonna-profile-2008-800MHz-mala-03": (0, 4151),
+        # 2009
+        "austfonna-profile-2009-800MHz-mala-01": (13819, -1),
+        "austfonna-profile-2009-800MHz-mala-04": (0, 4440),
+        # 2010
+        "austfonna-profile-2010-800MHz-mala-02": (15547, -1),
+        # 2011
+        "austfonna-profile-2011-800MHz-mala-01": (16114, -1),
+        "austfonna-profile-2011-800MHz-mala-02": (0, 5647),
+        "austfonna-profile-2011-800MHz-mala-03": (0, 4018),
+        "austfonna-profile-2011-800MHz-mala-04": (8527, 18126),
+        "austfonna-profile-2011-800MHz-mala-05": (32711, -1),
+        # 2012
+        "austfonna-profile-2012-800MHz-mala-02": (0, 5937),
+        "austfonna-profile-2012-800MHz-mala-06": (0, 11755),
+        "austfonna-profile-2012-800MHz-mala-07": (8033, -1),
+        # 2013
+        "austfonna-profile-2013-800MHz-mala-01": (3258, -1),
+        "austfonna-profile-2013-800MHz-mala-02": (0, 15943),
+        "austfonna-profile-2013-800MHz-mala-03": (8151, -1),
+        "austfonna-profile-2013-800MHz-mala-05": (0, 4110),
+        "austfonna-profile-2013-800MHz-mala-06": (0, 1983),
+        # 2014
+        "austfonna-profile-2014-800MHz-mala-03": (7903, -1),
+        # 2015
+        "austfonna-profile-2015-800MHz-mala-01": (9929, -1),
+        "austfonna-profile-2015-800MHz-mala-03": (0, 13153),
+        "austfonna-profile-2015-800MHz-mala-04": (22242, -1),
+        # 2023
         "austfonna-profile-2023-800MHz-mala-01": (30668, 71580),
     }
 
