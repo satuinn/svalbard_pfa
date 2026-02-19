@@ -6,7 +6,7 @@ import shutil
 RSGPR_PATH = "rsgpr"
 
 def locate_rsgpr():
-    """Try to locate an installation of rsgpr"""
+    """Try to locate an installation of rsgpr and check that it's the right version"""
     global RSGPR_PATH
     import socket
 
@@ -15,6 +15,14 @@ def locate_rsgpr():
         if not new_path.is_file():
             return
         RSGPR_PATH = new_path
+
+    result = subprocess.run([RSGPR_PATH, "--version"], capture_output=True)
+    if result.returncode != 0:
+        raise AssertionError(f"Cannot find rsgpr")
+
+    version = result.stdout.decode().replace("rsgpr", "").strip()
+    required = "0.4.1"
+    assert version >= required, f"Incompatible rsgpr version found: {version}. Needs >= {required}"
 
 def lowfreq_corr(x: np.ndarray, fs: float, fmin: float = 0.003, fmax: float = 0.3, alpha: float = 1500., sigma: float = 0.02, min_att: float = 1e-3):
     """Get a correction factor for low-frequency undulations in a signal.
