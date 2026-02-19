@@ -77,7 +77,7 @@ def create_renaming_plan():
         r"\Austfonna\2004\Level0_COP_Malå_800MHz\120-13": "austfonna-profile-2004-800MHz-mala-01",
         r"\Austfonna\2004\Level0_COP_Malå_800MHz\120-131": "austfonna-profile-2004-800MHz-mala-02",
         r"\Austfonna\2004\Level0_COP_Malå_800MHz\vest4": "austfonna-profile-2004-800MHz-mala-03",
-        r"\Austfonna\2004\Level0_COP_Malå_800MHz\vest5": "austfonna-profile-2004-800MHz-mala-04",
+        r"\Austfonna\2004\Level0_COP_Malå_800MHz\vest9": "austfonna-profile-2004-800MHz-mala-04",
 
         # AUSTFONNA 2005
         r"\Austfonna\2005\Level0_COP_Malå_800MHz\asf2304-2": "austfonna-profile-2005-800MHz-mala-01",
@@ -112,6 +112,54 @@ def create_renaming_plan():
         r"\Austfonna\2009\Level0_COP_Malå_800MHz\nv2_2904-09": "austfonna-profile-2009-800MHz-mala-02",
         r"\Austfonna\2009\Level0_COP_Malå_800MHz\nv3_2904-09": "austfonna-profile-2009-800MHz-mala-03",
         r"\Austfonna\2009\Level0_COP_Malå_800MHz\nv5-invers_2904-09": "austfonna-profile-2009-800MHz-mala-04",
+
+        #AUSTFONNA 2010:
+        r"\Austfonna\2010\Level0_COP_Malå_800MHz\DAT_0012_A1_0505-10": "austfonna-profile-2010-800MHz-mala-01",
+        r"\Austfonna\2010\Level0_COP_Malå_800MHz\DAT_0041_A1_2504-10": "austfonna-profile-2010-800MHz-mala-02",
+        r"\Austfonna\2010\Level0_COP_Malå_800MHz\DAT_0042_A1_2504-10": "austfonna-profile-2010-800MHz-mala-03",
+        r"\Austfonna\2010\Level0_COP_Malå_800MHz\DAT_0043_A1_2504-10": "austfonna-profile-2010-800MHz-mala-04",
+
+        #AUSTFONNA 2011:
+        r"\Austfonna\2011\Level0_COP_Malå_800MHz\DAT_0002_0305-11": "austfonna-profile-2011-800MHz-mala-01",  
+        r"\Austfonna\2011\Level0_COP_Malå_800MHz\DAT_0002_A1_0105-11": "austfonna-profile-2011-800MHz-mala-02", 
+        r"\Austfonna\2011\Level0_COP_Malå_800MHz\DAT_0003_A1_1105-11": "austfonna-profile-2011-800MHz-mala-03", 
+        r"\Austfonna\2011\Level0_COP_Malå_800MHz\DAT_0009_A1_0705-11": "austfonna-profile-2011-800MHz-mala-04",
+        r"\Austfonna\2011\Level0_COP_Malå_800MHz\DAT_0017_A1_0405-11": "austfonna-profile-2011-800MHz-mala-05",
+
+        # AUSTFONNA 2012
+        r"\Austfonna\2012\Level0_COP_Malå_800MHz\DAT_0011_A1": "austfonna-profile-2012-800MHz-mala-01", 
+        r"\Austfonna\2012\Level0_COP_Malå_800MHz\DAT_0012_A1": "austfonna-profile-2012-800MHz-mala-02",
+        r"\Austfonna\2012\Level0_COP_Malå_800MHz\DAT_0017_A1": "austfonna-profile-2012-800MHz-mala-03",
+        r"\Austfonna\2012\Level0_COP_Malå_800MHz\DAT_0023_A1": "austfonna-profile-2012-800MHz-mala-04",
+        r"\Austfonna\2012\Level0_COP_Malå_800MHz\DAT_0024_A1": "austfonna-profile-2012-800MHz-mala-05",
+        r"\Austfonna\2012\Level0_COP_Malå_800MHz\DAT_0035_A1": "austfonna-profile-2012-800MHz-mala-06",
+        r"\Austfonna\2012\Level0_COP_Malå_800MHz\DAT_0042_A1": "austfonna-profile-2012-800MHz-mala-07",
+
+
+        # AUSTFONNA 2013
+        r"\Austfonna\2013\Level0_COP_Malå_800MHz\DAT_0007_A1": "austfonna-profile-2013-800MHz-mala-01", 
+        r"\Austfonna\2013\Level0_COP_Malå_800MHz\DAT_0032_A1": "austfonna-profile-2013-800MHz-mala-02", 
+        r"\Austfonna\2013\Level0_COP_Malå_800MHz\DAT_0044_A1": "austfonna-profile-2013-800MHz-mala-03",
+        r"\Austfonna\2013\Level0_COP_Malå_800MHz\DAT_0045_A1": "austfonna-profile-2013-800MHz-mala-04",
+        r"\Austfonna\2013\Level0_COP_Malå_800MHz\DAT_0047_A1": "austfonna-profile-2013-800MHz-mala-05",
+        r"\Austfonna\2013\Level0_COP_Malå_800MHz\DAT_0066_A1": "austfonna-profile-2013-800MHz-mala-06",
+        r"\Austfonna\2013\Level0_COP_Malå_800MHz\DAT_0069_A1": "austfonna-profile-2013-800MHz-mala-07",
+
+        # AUSTFONNA 2014
+        r"\Austfonna\2014\Level0_COP_Malå_800MHz\DAT_0172_A1": "austfonna-profile-2014-800MHz-mala-01", 
+        r"\Austfonna\2014\Level0_COP_Malå_800MHz\DAT_0173_A1": "austfonna-profile-2014-800MHz-mala-02", 
+        r"\Austfonna\2014\Level0_COP_Malå_800MHz\DAT_0175_A1": "austfonna-profile-2014-800MHz-mala-03", 
+        r"\Austfonna\2014\Level0_COP_Malå_800MHz\DAT_0186_A1": "austfonna-profile-2014-800MHz-mala-04",
+        r"\Austfonna\2014\Level0_COP_Malå_800MHz\DAT_0198_A1": "austfonna-profile-2014-800MHz-mala-05",
+        r"\Austfonna\2014\Level0_COP_Malå_800MHz\DAT_0199_A1": "austfonna-profile-2014-800MHz-mala-06",
+
+        # AUSTFONNA 2015
+        r"\Austfonna\2015\Level0_COP_Malå_800MHz\DAT_0001_A1-NW_Helvete": "austfonna-profile-2015-800MHz-mala-01", 
+        r"\Austfonna\2015\Level0_COP_Malå_800MHz\DAT_0002_A1-NW_Helvete": "austfonna-profile-2015-800MHz-mala-02",
+        r"\Austfonna\2015\Level0_COP_Malå_800MHz\DAT_0004_A1-NW_Helvete": "austfonna-profile-2015-800MHz-mala-03",
+        r"\Austfonna\2015\Level0_COP_Malå_800MHz\DAT_0006_A1-150430_Eton": "austfonna-profile-2015-800MHz-mala-04",
+
+
 
 
     }
