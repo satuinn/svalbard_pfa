@@ -140,17 +140,18 @@ def run_rsgpr(
 
 def normalize(data: np.ndarray, contrast: float = 0.9):
     """Normalize the data and convert to an unsigned 8 bit integer array."""
-    data = np.abs(data)
-    minval_abs, maxval_abs = np.percentile(np.abs(data[50:]), [1, 99])
-    data = np.clip(contrast * (data - minval_abs) / (maxval_abs - minval_abs), 0, 1)
+    data_abs = np.abs(data)
+    minval_abs, maxval_abs = np.percentile(np.abs(data_abs[50:]), [1, 99])
+    data_abs = np.clip(contrast * (data - minval_abs) / (maxval_abs - minval_abs + 1e-12), 0, 1)
 
-    return (data * 255).astype("uint8")
+    return (data_abs * 255).astype("uint8")
 
 
 def fix_power_variation(filepath: Path):
     """Correct for horizontal variations in power in a dataset.
     This will overwrite the original data."""
     import xarray as xr
+    xr.set_options(display_style='text')
     new_filepath = filepath.with_name(filepath.name + ".tmp")
     with xr.open_dataset(filepath) as data:
         if data.x.shape[0] <= 256:
@@ -171,6 +172,11 @@ def fix_power_variation(filepath: Path):
 
         data.attrs["power_fixed"] = 1
 
+        # Force every attribute to be ASCII characters only. This stopped files from being saved on some computers
+        for key, value in data.attrs.items():
+            if isinstance(value, str):
+                data.attrs[key] = value.encode("ascii", errors="ignore").decode()
+        
         data.to_netcdf(new_filepath, encoding={v: {"complevel": 9, "zlib": True} for v in data.data_vars})
 
     shutil.move(new_filepath, filepath)
@@ -246,8 +252,29 @@ def subsetting(radar_key: str) -> tuple[int, int] | None:
         "austfonna-profile-2015-800MHz-mala-01": (9929, -1),
         "austfonna-profile-2015-800MHz-mala-03": (0, 13153),
         "austfonna-profile-2015-800MHz-mala-04": (22242, -1),
-        # 2023
+
+        #2016:
+        "austfonna-profile-2016-800MHz-mala-01": (15773, -1),
+        "austfonna-profile-2016-800MHz-mala-03": (8720, -1),
+        
+        #2017:
+        "austfonna-profile-2017-800MHz-mala-02": (0, 1304),
+        "austfonna-profile-2017-800MHz-mala-03": (9181, -1),
+        "austfonna-profile-2017-800MHz-mala-06": (0, 3968),
+        
+        #2018:
+        "austfonna-profile-2018-800MHz-mala-02": (0, 1364),
+        
+        #2019:
+        "austfonna-profile-2019-800MHz-mala-01": (7196, -1),
+        "austfonna-profile-2019-800MHz-mala-03": (0, 955),
+        "austfonna-profile-2019-800MHz-mala-04": (6332, -1),
+        
+        
+        #2023:
         "austfonna-profile-2023-800MHz-mala-01": (30668, 71580),
+        "austfonna-profile-2023-800MHz-mala-03": (0, 26391),
+
     }
 
     if radar_key not in subsets:
@@ -289,9 +316,10 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
             "zero_corr",
             "bandpass(0.2 0.5)",
             "gain(0.11)",
+            "siglog(2)"
         ]
 
-        if "austfonna-profile-2023" in radar_key:
+        if "austfonna-profile-2023" in radar_key or "austfonna-profile-2024" in radar_key:
             run_fix_power_variation = True
         
     # Steps if it's anything else than 800MHz
@@ -303,11 +331,17 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
             siglog_level = 0
         elif "amundsenisen-profile-2006" in radar_key:
             siglog_level = 2
+        elif "-25MHz-" in radar_key:
+            siglog_level = 0
+
+        gain_level = 0.08
+        if "-25MHz-" in radar_key:
+            gain_level = 0.008
 
         steps = [
             "zero_corr",
+            f"gain({gain_level})",
             "bandpass(0.1 0.9)",
-            "gain(0.08)",
             f"siglog({siglog_level})",
         ]
 
@@ -334,8 +368,8 @@ def process_all_data(redo: bool = False):
     redo
         Reprocess data despite already existing.
     """
-    level1_dir = Path("processing/level1")
-    level2_dir = Path("processing/level2")
+    level1_dir = Path("processed/level1")
+    level2_dir = Path("processed/level2")
 
     for header_filepath in level1_dir.rglob("*.*"):
 
@@ -350,9 +384,16 @@ def process_all_data(redo: bool = False):
         # E.g. some_dir/level1/subdir/file.rad -> new_dir/level2/subdir/file.rad
         output_filepath = (level2_dir / "/".join(header_filepath.parts[slice(header_filepath.parts.index("level1") + 1, None)])).with_suffix(".nc")
 
-        if not output_filepath.is_file() or redo:
-            process_radargram(output_filepath=output_filepath, input_header_filepath=header_filepath)
+        if "austfonna-profile-2024-25MHz" in output_filepath.stem:
+            redo = True
+        else:
+            continue
 
+        try:
+            if not output_filepath.is_file() or redo:
+                process_radargram(output_filepath=output_filepath, input_header_filepath=header_filepath)
+        except RuntimeError as exception:
+            print(f"Failed with error: {exception}")
 
 
 if __name__ == "__main__":
