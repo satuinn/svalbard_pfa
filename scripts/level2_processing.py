@@ -1,3 +1,4 @@
+import radal as rsgpr
 from pathlib import Path
 import numpy as np
 import shutil
@@ -115,7 +116,6 @@ def run_rsgpr(
     medium_velocity
         The assumed velocity of the subsurface in m/ns
     """
-    import rsgpr
 
     required_ver = "0.4.1"
     assert rsgpr.version >= required_ver, f"Incompatible rsgpr version found: {version}. Needs >= {required_ver}"
@@ -133,6 +133,7 @@ def run_rsgpr(
         output=str(tmp_path),
         quiet=True,
         dem=str(dem_path) if dem_path is not None else None,
+        override_antenna_mhz = float(output_filepath.stem.split("-")[3].replace("MHz", ""))
     )
 
     shutil.move(tmp_path, output_filepath)
@@ -384,10 +385,10 @@ def process_all_data(redo: bool = False):
         # E.g. some_dir/level1/subdir/file.rad -> new_dir/level2/subdir/file.rad
         output_filepath = (level2_dir / "/".join(header_filepath.parts[slice(header_filepath.parts.index("level1") + 1, None)])).with_suffix(".nc")
 
-        if "austfonna-profile-2024-25MHz" in output_filepath.stem:
-            redo = True
-        else:
-            continue
+        #if "austfonna-profile-2024-25MHz" in output_filepath.stem:
+        #    redo = True
+        #else:
+        #    continue
 
         try:
             if not output_filepath.is_file() or redo:
