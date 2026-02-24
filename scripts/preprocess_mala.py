@@ -101,7 +101,8 @@ def save_ramac(output_rad_filepath: Path, gpr: GPR) -> None:
 
     rad_text = "\n".join([f"{key}: {value}" for key, value in gpr.rad.items()])
     output_rad_filepath.write_text(rad_text)
-
+    gpr.cor = gpr.cor.dropna()
+    gpr.cor[0] = gpr.cor[0].astype(int)  # Convert trace numbers to integers if they aren't already
     gpr.cor.to_csv(cor_filepath, sep="\t", header=False, index=False)
 
     gpr.rd3.astype("int16").T.ravel().tofile(rd3_filepath, format="<i2")
