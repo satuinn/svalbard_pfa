@@ -186,20 +186,6 @@ def preprocess_mala(
     output_rad_filepath.parent.mkdir(exist_ok=True, parents=True)
     save_ramac(output_rad_filepath=output_rad_filepath, gpr=gpr)
 
-    
-
-def run_test():
-
-    better_gps_path = Path("/home/erikmann/Downloads/kinematic2025_ppp_1s_radar.zip")
-    rad_filepath = Path("/home/erikmann/Downloads/OneDrive_1_12-02-2026/DAT_0002_B1.rad")
-    temp_path = Path("temp/gpr0002.rad")
-    temp_path.parent.mkdir(exist_ok=True)
-
-    preprocess_ramac(output_rad_filepath=temp_path, rad_filepath=rad_filepath, better_gps_path=better_gps_path)
-
-
-if __name__ == "__main__":
-    run_test()
 
 
     

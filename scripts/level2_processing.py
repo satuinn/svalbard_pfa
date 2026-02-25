@@ -1,9 +1,9 @@
-import radal as rsgpr
+import radal
 from pathlib import Path
 import numpy as np
 import shutil
 
-REQUIRED_RSGPR_VERSION = "0.4.1"
+REQUIRED_RADAL_VERSION = "0.4.1"
 
 def lowfreq_corr(x: np.ndarray, fs: float, fmin: float = 0.003, fmax: float = 0.3, alpha: float = 1500., sigma: float = 0.02, min_att: float = 1e-3):
     """Get a correction factor for low-frequency undulations in a signal.
@@ -94,14 +94,14 @@ def lowfreq_corr(x: np.ndarray, fs: float, fmin: float = 0.003, fmax: float = 0.
     return x - x_clean[:N]
 
 
-def run_rsgpr(
+def run_radal(
     input_filepath: Path | str,
     output_filepath: Path | str,
     steps: list[str],
     dem_path: Path | None = None,
     medium_velocity: float = 0.2,
 ):
-    """Run rsgpr with the given steps.
+    """Run radal with the given steps.
 
     Parameters
     ----------
@@ -116,9 +116,7 @@ def run_rsgpr(
     medium_velocity
         The assumed velocity of the subsurface in m/ns
     """
-
-    required_ver = "0.4.1"
-    assert rsgpr.version >= required_ver, f"Incompatible rsgpr version found: {version}. Needs >= {required_ver}"
+    assert radal.version >= REQUIRED_RADAL_VERSION, f"Incompatible rsgpr version found: {radal.version}. Needs >= {REQUIRED_RADAL_VERSION}"
 
     if not Path(input_filepath).is_file():
         raise ValueError(f"Cannot find {input_filepath}")
@@ -126,7 +124,7 @@ def run_rsgpr(
     output_filepath = Path(output_filepath)
     tmp_path = output_filepath.with_name(output_filepath.name + ".tmp")
 
-    rsgpr.run_cli(
+    radal.run_cli(
         filepath=str(input_filepath),
         velocity=medium_velocity,
         steps=steps,
@@ -355,7 +353,7 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
     output_filepath.parent.mkdir(exist_ok=True, parents=True)
 
     print(f"Processing {input_header_filepath.name}")
-    run_rsgpr(input_filepath=input_header_filepath, output_filepath=output_filepath, steps=steps)
+    run_radal(input_filepath=input_header_filepath, output_filepath=output_filepath, steps=steps)
 
     if run_fix_power_variation:
         fix_power_variation(output_filepath)
