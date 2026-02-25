@@ -7,8 +7,22 @@ from pathlib import Path
 def corfile_colnames() -> list[str]:
     return ["trace_n", "date_str", "time_str", "lat", "lat_ref", "lon", "lon_ref", "alt", "M", "1"]
 
-def read_corfile(filepath: Path) -> gpd.GeoDataFrame:
+def expected_dtypes() -> dict[str, type | str]:
+    return {
+        "trace_n": int,
+        "date_str": str,
+        "time_str": str,
+        "lat": float,
+        "lat_ref": str,
+        "lon": float,
+        "lon_ref": str,
+        "alt": str,
+        "M": str,
+        "1": str,
+    }
 
+def read_corfile(filepath: Path) -> gpd.GeoDataFrame:
+    """Read a corfile into memory."""
     data = pd.read_csv(filepath, sep=r"\s+", header=None, names=corfile_colnames())
 
     # Remove unlikely points
@@ -19,6 +33,7 @@ def read_corfile(filepath: Path) -> gpd.GeoDataFrame:
     if data.shape[0] == 0:
         return data
 
+    # Set the index to the datetime it represents (useful for syncing)
     data.index = pd.to_datetime(data["date_str"] + "T" + data["time_str"])
 
     data = data.loc[~data.index.duplicated(keep="first")]
@@ -27,12 +42,27 @@ def read_corfile(filepath: Path) -> gpd.GeoDataFrame:
 
 
 def save_corfile(filepath: Path, cor_data: gpd.GeoDataFrame):
-
+    """Save a corfile."""
     cor_data = cor_data[corfile_colnames()]
+
+    for key, dtype in expected_dtypes().items():
+        cor_data[key] = cor_data[key].astype(dtype)
 
     cor_data.to_csv(filepath, sep="\t", header=False, index=False)
 
 def find_other_corfiles(orig_corfile_path: Path, disallow_same_dir: bool = True, max_level: int = 2):
+    """Find other corfiles close by that may be candidates for improved coordinate data.
+
+    Parameters
+    ----------
+    orig_corfile_path
+        The path of the original corfile
+    disallow_same_dir
+        Don't look in the same directory as the corfile (only in other dirs)
+    max_level
+        Maximum amount of directory levels to look back. e.g. 2 for a/b/c will look in a/
+
+    """
     orig_corfile_path = orig_corfile_path.absolute()
 
     for other_filepath in orig_corfile_path.parents[max_level].rglob("*.*"):
@@ -46,60 +76,55 @@ def find_other_corfiles(orig_corfile_path: Path, disallow_same_dir: bool = True,
 
 
 def corfiles_compatible(first: gpd.GeoDataFrame, second: gpd.GeoDataFrame) -> tuple[float, gpd.GeoDataFrame] | tuple[None, None]:
+    """Check if corfiles are compatible in time, and return the second if yes.
 
+    Parameters
+    ----------
+    first
+        The "reference" corfile to test the candidate on
+    second
+        The "candidate" corfile that may be a replacement
+
+    Returns
+    -------
+    If they are not compatible, (None, None) is returned
+
+    If they are compatible, the NMAD in northing (m) is returned
+    and the candidate, aligned to the times of the reference.
+    """
 
     trace_n_overlap = first["trace_n"].isin(second["trace_n"])
     if not np.any(trace_n_overlap):
         return None, None
 
+    # Merge on datetime and only retain the rows that occur in both datasets 
+    joined = first.merge(second, left_index=True, right_index=True, how="inner")
 
-    # joined = first.merge(second, on="trace_n")
-    joined = first.merge(second, left_index=True, right_index=True)
-
+    # If the merged version is significantly shorter than the original, they're probably not a match.
     if (joined.shape[0] / first.shape[0]) < 0.3:
         return None, None
-
-    # second_trace_n_overlap = second["trace_n"].isin(first["trace_n"])
-    # first = first.loc[trace_n_overlap].sort_values("trace_n")
-    # second = second.loc[second_trace_n_overlap].sort_values("trace_n")
 
     diffs = joined["lat_x"].values - joined["lat_y"].values
     lat_nmad = 1.4826 * np.nanmedian(np.abs((diffs - np.nanmedian(diffs)))) * 111132
 
-    # if 0 < lat_nmad < 10:
-    #     import matplotlib.pyplot as plt
-    #     minval = joined[["alt_x", "alt_y"]].values.min()
-    #     maxval = joined[["alt_x", "alt_y"]].values.max()
-    #     plt.plot([minval, maxval], [minval, maxval])
-    #     plt.scatter(joined["alt_x"], joined["alt_y"])
-    #     plt.show()
-
     return lat_nmad, second.loc[joined.index]
 
-    print(lat_nmad)
-    
-
-    return
-
-    index_overlap = first.index.isin(second.index)
-
-    if not np.any(index_overlap):
-        return False
-
-    first = first.loc[index_overlap]
-    second = second.loc[first.index]
-
-
-    print(first.iloc[:2])
-    print(second.iloc[:2])
-
-    lat_nmad = (first["alt"] - second["alt"]).abs().median()
-
-    print(lat_nmad)
-
-    
 
 def replace_corfile(orig_corfile: Path) -> Path | None:
+    """Attempt to replace a corfile with a corrected one by looking in nearby directories.
+
+    Parameters
+    ----------
+    orig_corfile
+        The original corfile where a replacement candidate should be found
+
+    Returns
+    -------
+    If a candidate is found:
+        A path to a corrected corfile, saved in a temporary directory.
+    If no candidate is found:
+        None
+    """
     corfile = read_corfile(orig_corfile)
 
     temp_dir = Path("temp_corfiles/")
@@ -113,12 +138,14 @@ def replace_corfile(orig_corfile: Path) -> Path | None:
 
     for other in find_other_corfiles(orig_corfile):
 
-        # print(f"\t\tComparing {orig_corfile.name} with {other.name}")
         diff, better_cor = corfiles_compatible(corfile, read_corfile(other))
 
+        # This means: If the corfile was not compatible in time
         if diff is None or better_cor is None:
             continue
 
+        # If the difference is almost nothing, it's likely the same corfile as the original but with a different name
+        # If the difference is very large, it was collected at the same time but somewhere else.
         if diff < 0.01 or diff > 30:
             continue
 
@@ -128,23 +155,4 @@ def replace_corfile(orig_corfile: Path) -> Path | None:
         save_corfile(temp_fp, better_cor)
         return temp_fp
 
-    
-
-
-def main():
-    # print(read_corfile("~/Downloads/DAT_0069_A1/2007/cor_files_precise-positions/22043_RC.COR"))
-    # return
-    orig_corfile = Path("/home/erik/Downloads/DAT_0069_A1/2008/Level0_COP_Malå_800MHz/2504-08-21/2504-08-21.cor")
-    orig_corfile = Path("/home/erik/Downloads/DAT_0069_A1/2008/Level0_COP_Malå_800MHz/p111_b08_nw1_0205-08/p111_b08_nw1.cor")
-
-
-    corfile_dir = Path("/home/erik/Downloads/DAT_0069_A1/2008/Level0_COP_Malå_800MHz")
-
-    for orig_corfile in corfile_dir.rglob("*.*"):
-        if orig_corfile.suffix.lower() != ".cor":
-            continue
-        replace_corfile(orig_corfile)
-
-
-if __name__ == "__main__":
-    main()
+   
