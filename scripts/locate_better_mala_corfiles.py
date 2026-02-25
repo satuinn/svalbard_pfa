@@ -23,10 +23,17 @@ def expected_dtypes() -> dict[str, type | str]:
 
 def read_corfile(filepath: Path) -> gpd.GeoDataFrame:
     """Read a corfile into memory."""
-    data = pd.read_csv(filepath, sep=r"\s+", header=None, names=corfile_colnames())
+    data = pd.read_csv(filepath, sep=r"\s+", header=None, names=corfile_colnames(), low_memory=False, encoding_errors="ignore")
+
+    # Remove all rows that can't be parsed as floating point values
+    for col in ["lat", "lon"]:
+        data[col] = pd.to_numeric(data[col], errors="coerce")
+    data = data.dropna()
 
     # Remove unlikely points
     data = data[(data["lat"] > 70) & (data["lat"] < 81) & (data["lon"] > 10) & (data["lon"] < 25)]
+
+    data["time_str"] = data["time_str"].str.zfill(8)
 
     data = gpd.GeoDataFrame(data, geometry=gpd.points_from_xy(data["lon"], data["lat"], crs=4326))
 
@@ -34,7 +41,9 @@ def read_corfile(filepath: Path) -> gpd.GeoDataFrame:
         return data
 
     # Set the index to the datetime it represents (useful for syncing)
-    data.index = pd.to_datetime(data["date_str"] + "T" + data["time_str"])
+    data.index = pd.to_datetime(data["date_str"] + "T" + data["time_str"], errors="coerce")
+
+    data = data.loc[~data.index.isna()]
 
     data = data.loc[~data.index.duplicated(keep="first")]
 
@@ -43,7 +52,7 @@ def read_corfile(filepath: Path) -> gpd.GeoDataFrame:
 
 def save_corfile(filepath: Path, cor_data: gpd.GeoDataFrame):
     """Save a corfile."""
-    cor_data = cor_data[corfile_colnames()]
+    cor_data = cor_data[corfile_colnames()].copy()
 
     for key, dtype in expected_dtypes().items():
         cor_data[key] = cor_data[key].astype(dtype)
@@ -96,6 +105,8 @@ def corfiles_compatible(first: gpd.GeoDataFrame, second: gpd.GeoDataFrame) -> tu
     trace_n_overlap = first["trace_n"].isin(second["trace_n"])
     if not np.any(trace_n_overlap):
         return None, None
+    
+    second = second[second["trace_n"].isin(first["trace_n"].values)]
 
     # Merge on datetime and only retain the rows that occur in both datasets 
     joined = first.merge(second, left_index=True, right_index=True, how="inner")
@@ -146,7 +157,7 @@ def replace_corfile(orig_corfile: Path) -> Path | None:
 
         # If the difference is almost nothing, it's likely the same corfile as the original but with a different name
         # If the difference is very large, it was collected at the same time but somewhere else.
-        if diff < 0.01 or diff > 30:
+        if diff < 0.01 or diff > 50:
             continue
 
         print(f"Replacing {orig_corfile.name} with {other.name}: {diff:.2f} m difference") 

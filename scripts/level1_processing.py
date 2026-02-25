@@ -1,6 +1,7 @@
 from pathlib import Path
 import shutil
 from preprocess_mala import preprocess_mala
+from locate_better_mala_corfiles import replace_corfile 
 
 def copy_file(output_filepath: Path, input_filepath: Path):
     output_filepath.parent.mkdir(exist_ok=True, parents=True)
@@ -203,9 +204,6 @@ def create_renaming_plan():
         r"Austfonna\2019\Level0_COP_Malå_800MHz\DAT_0066_A1": "austfonna-profile-2019-800MHz-mala-05",
 
 
-
-
-
     }
 
     for orig_dir, radar_id in renaming.items():
@@ -223,6 +221,14 @@ def create_renaming_plan():
             if "pulseekko" in radar_id and filepath.suffix not in [".hd", ".gp2", ".dt1"]:
                 continue
             
+            if 'mala' in radar_id and filepath.suffix == ".cor" and radar_id.split("-")[2] <= "2019":
+                try:
+                    potential_better_corfile = replace_corfile(filepath)
+                    if potential_better_corfile is not None:
+                        filepath = potential_better_corfile
+                except UnicodeDecodeError as exception:
+                    print(f"\t\tFAILED TO READ {filepath}: {exception}")
+
             renamed_files[new_filepath.suffix] = (filepath, new_filepath)
 
         if "mala" in radar_id:

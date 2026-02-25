@@ -315,9 +315,10 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
         steps = [
             "average_traces(2)",
             "zero_corr",
+            "correct_antenna_separation",
             "bandpass(0.2 0.5)",
             "gain(0.11)",
-            "siglog(2)"
+            "siglog(1.6)"
         ]
 
         if "austfonna-profile-2023" in radar_key or "austfonna-profile-2024" in radar_key:
@@ -329,7 +330,7 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
         # GPR brand, time and frequency.
         siglog_level = 3
         if input_header_filepath.suffix == ".hd":
-            siglog_level = 0
+            siglog_level = -0.5
         elif "amundsenisen-profile-2006" in radar_key:
             siglog_level = 2
         elif "-25MHz-" in radar_key:
@@ -341,6 +342,7 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
 
         steps = [
             "zero_corr",
+            "correct_antenna_separation",
             f"gain({gain_level})",
             "bandpass(0.1 0.9)",
             f"siglog({siglog_level})",
@@ -361,7 +363,7 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
     generate_jpgs(output_filepath, redo=True)
     
 
-def process_all_data(redo: bool = False):
+def process_all_data(redo: bool = True): # True if you want to run everything again
     """Process (level2) GPR data using rsgpr.
 
     Parameters

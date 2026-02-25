@@ -1,0 +1,30 @@
+picks/
+.vscode/
+*.png
+*.jpg
+*.jpeg
+temp_corfiles/
+processed/
+*.hd
+*.dt1
+*.gp2
+*.ini
+*.rad
+*.rd3
+*.add
+*.cor
+*.mrk
+*.em
+*.ele
+*.geojson
+MALÅ data 100 MHz Austfonna 2025/
+MALÅ 100 MHz Amundsenisen 2025/
+Lineset Dronbreen/
+Line Data PulseEkko AUS 2025/
+Line Data PulseEkko AMU 2025/
+gprpy test/
+CMPs AMU/
+CMPS AF/
+amundsenisen_2006_data_formatted/
+*__pycache__*
+old_scripts/
