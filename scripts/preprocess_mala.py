@@ -7,6 +7,7 @@ from pathlib import Path
 from dataclasses import dataclass
 import warnings
 
+from locate_better_mala_corfiles import read_corfile
 
 @dataclass
 class GPR:
@@ -46,7 +47,9 @@ def load_ramac(rad_filepath: Path, rd3_filepath: Path | None = None, cor_filepat
         rad[key.strip()] = value.strip()
 
     # Read the cor (coordinate) file
-    cor = pd.read_csv(cor_filepath, sep="\t", header=None)
+    #cor = pd.read_csv(cor_filepath, sep="\t", header=None)
+    cor = read_corfile(cor_filepath)
+    cor.columns = np.arange(cor.shape[1])
 
     # Read the rd3 (radargram) file
     rd3 = np.fromfile(rd3_filepath, dtype="<i2").reshape((-1, int(rad["SAMPLES"]))).T
@@ -103,7 +106,7 @@ def save_ramac(output_rad_filepath: Path, gpr: GPR) -> None:
     output_rad_filepath.write_text(rad_text)
     gpr.cor = gpr.cor.dropna()
     gpr.cor[0] = gpr.cor[0].astype(int)  # Convert trace numbers to integers if they aren't already
-    gpr.cor.to_csv(cor_filepath, sep="\t", header=False, index=False)
+    gpr.cor.iloc[:, :10].to_csv(cor_filepath, sep="\t", header=False, index=False)
 
     gpr.rd3.astype("int16").T.ravel().tofile(rd3_filepath, format="<i2")
 

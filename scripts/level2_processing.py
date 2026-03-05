@@ -1,9 +1,9 @@
-import radal
+import ridal
 from pathlib import Path
 import numpy as np
 import shutil
 
-REQUIRED_RADAL_VERSION = "0.4.1"
+REQUIRED_ridal_VERSION = "0.4.6"
 
 def lowfreq_corr(x: np.ndarray, fs: float, fmin: float = 0.003, fmax: float = 0.3, alpha: float = 1500., sigma: float = 0.02, min_att: float = 1e-3):
     """Get a correction factor for low-frequency undulations in a signal.
@@ -94,14 +94,14 @@ def lowfreq_corr(x: np.ndarray, fs: float, fmin: float = 0.003, fmax: float = 0.
     return x - x_clean[:N]
 
 
-def run_radal(
+def run_ridal(
     input_filepath: Path | str,
     output_filepath: Path | str,
     steps: list[str],
     dem_path: Path | None = None,
     medium_velocity: float = 0.2,
 ):
-    """Run radal with the given steps.
+    """Run ridal with the given steps.
 
     Parameters
     ----------
@@ -116,7 +116,7 @@ def run_radal(
     medium_velocity
         The assumed velocity of the subsurface in m/ns
     """
-    assert radal.version >= REQUIRED_RADAL_VERSION, f"Incompatible rsgpr version found: {radal.version}. Needs >= {REQUIRED_RADAL_VERSION}"
+    assert ridal.version >= REQUIRED_ridal_VERSION, f"Incompatible rsgpr version found: {ridal.version}. Needs >= {REQUIRED_ridal_VERSION}"
 
     if not Path(input_filepath).is_file():
         raise ValueError(f"Cannot find {input_filepath}")
@@ -124,12 +124,12 @@ def run_radal(
     output_filepath = Path(output_filepath)
     tmp_path = output_filepath.with_name(output_filepath.name + ".tmp")
 
-    radal.run_cli(
+    ridal.run_cli(
         filepath=str(input_filepath),
         velocity=medium_velocity,
         steps=steps,
         output=str(tmp_path),
-        quiet=True,
+        quiet=False,
         dem=str(dem_path) if dem_path is not None else None,
         override_antenna_mhz = float(output_filepath.stem.split("-")[3].replace("MHz", ""))
     )
@@ -199,7 +199,10 @@ def generate_jpgs(processed_filepath: Path, redo: bool = False):
     import PIL.Image
 
     with xr.open_dataset(processed_filepath) as data:
-        arr = normalize(data.data.values)
+        if "data_topographically_corrected" in data.data_vars:
+            arr = normalize(data.data_topographically_corrected.values)
+        else:
+            arr = normalize(data.data.values)
 
     maxwidth = 60000
     if arr.shape[1] > maxwidth:
@@ -286,7 +289,7 @@ def subsetting(radar_key: str) -> tuple[int, int] | None:
         return subset
         
 
-def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_key: str | None = None):
+def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_key: str | None = None, correct_topography: bool = False):
     """Process one radargram, with steps defined from its filename/radar_key.
 
     A JPG will be rendered beside the output_filepath.
@@ -316,7 +319,7 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
             "correct_antenna_separation",
             "bandpass(0.2 0.5)",
             "gain(0.11)",
-            "siglog(1.6)"
+            "siglog(1.6)",
         ]
 
         if "austfonna-profile-2023" in radar_key or "austfonna-profile-2024" in radar_key:
@@ -346,14 +349,35 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
             f"siglog({siglog_level})",
         ]
 
+    # GPS position offset from the GPR. The first value is along the track and the second is elevation
+    offsets = {
+        "amundsenisen-profile-2025-100MHz-mala": (-4, -1),
+        "amundsenisen-profile-2025-200MHz-pulseekko": (-2.5, -1.1),
+        "austfonna-profile-2025-100MHz-mala": (-2.5, -1.3),
+        "austfonna-profile-2025-200MHz-pulseekko": (-2.15, -0.8),
+        "austfonna-profile-2024-25MHz-mala": (-2.5, -1.3),
+        "austfonna-profile-2024-800MHz-mala": (-1.5, -1.3),
+        "austfonna-profile-2023-800MHz-mala": (-4.4, -1.3),
+        "-800MHz-mala": (-2, -1.3),
+
+    }
+    for pattern in offsets:
+        if pattern in radar_key:
+            offset = offsets[pattern]
+            steps.insert(0, f"shift_coordinates({offset[0]} {offset[1]} 0.)") 
+            break
+
     # If a subsetting operation has been defined for the key, apply it first.
     if (subset := subsetting(radar_key)) is not None:
         steps.insert(0, f"subset({subset[0]} {subset[1]})")
 
+    if correct_topography:
+        steps.append("correct_topography")
+
     output_filepath.parent.mkdir(exist_ok=True, parents=True)
 
     print(f"Processing {input_header_filepath.name}")
-    run_radal(input_filepath=input_header_filepath, output_filepath=output_filepath, steps=steps)
+    run_ridal(input_filepath=input_header_filepath, output_filepath=output_filepath, steps=steps)
 
     if run_fix_power_variation:
         fix_power_variation(output_filepath)
@@ -385,9 +409,9 @@ def process_all_data(redo: bool = True): # True if you want to run everything ag
         # E.g. some_dir/level1/subdir/file.rad -> new_dir/level2/subdir/file.rad
         output_filepath = (level2_dir / "/".join(header_filepath.parts[slice(header_filepath.parts.index("level1") + 1, None)])).with_suffix(".nc")
 
-        #if "austfonna-profile-2024-25MHz" in output_filepath.stem:
+        # if "austfonna-profile-2024-25MHz" in output_filepath.stem:
         #    redo = True
-        #else:
+        # else:
         #    continue
 
         try:

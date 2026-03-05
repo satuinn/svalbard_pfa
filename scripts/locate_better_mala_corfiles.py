@@ -26,12 +26,13 @@ def read_corfile(filepath: Path) -> gpd.GeoDataFrame:
     data = pd.read_csv(filepath, sep=r"\s+", header=None, names=corfile_colnames(), low_memory=False, encoding_errors="ignore")
 
     # Remove all rows that can't be parsed as floating point values
-    for col in ["lat", "lon"]:
+    for col in ["lat", "lon", "alt"]:
         data[col] = pd.to_numeric(data[col], errors="coerce")
     data = data.dropna()
 
     # Remove unlikely points
     data = data[(data["lat"] > 70) & (data["lat"] < 81) & (data["lon"] > 10) & (data["lon"] < 25)]
+    data = data[(data["alt"] > 50) & (data["alt"] < 2000)] 
 
     data["time_str"] = data["time_str"].str.zfill(8)
 
