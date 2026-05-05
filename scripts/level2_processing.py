@@ -217,6 +217,7 @@ def generate_jpgs(processed_filepath: Path, redo: bool = False):
 def subsetting(radar_key: str) -> tuple[int, int] | None:
     """Get the predetermined trace subsetting information for a given radar_key,
      or None if no subsetting should be done."""
+    return None
     subsets = {
         # 2007
         "austfonna-profile-2007-800MHz-mala-01": (0, 5345),
@@ -322,6 +323,9 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
             "siglog(1.6)",
         ]
 
+        if "austfonna-profile-2026" in radar_key:
+            steps.remove("average_traces(2)")
+
         if "austfonna-profile-2023" in radar_key or "austfonna-profile-2024" in radar_key:
             run_fix_power_variation = True
         
@@ -336,6 +340,10 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
             siglog_level = 2
         elif "-25MHz-" in radar_key:
             siglog_level = 0
+        elif "austfonna-profile-2026" in radar_key:
+            siglog_level = 1
+
+
 
         gain_level = 0.08
         if "-25MHz-" in radar_key:
@@ -385,7 +393,7 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
     generate_jpgs(output_filepath, redo=True)
     
 
-def process_all_data(redo: bool = True): # True if you want to run everything again
+def process_all_data(redo: bool = False): # True if you want to run everything again
     """Process (level2) GPR data using rsgpr.
 
     Parameters
