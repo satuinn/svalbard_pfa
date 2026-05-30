@@ -31,7 +31,7 @@ def read_corfile(filepath: Path) -> gpd.GeoDataFrame:
     data = data.dropna()
 
     # Remove unlikely points
-    data = data[(data["lat"] > 70) & (data["lat"] < 81) & (data["lon"] > 10) & (data["lon"] < 25)]
+    data = data[(data["lat"] > 70) & (data["lat"] < 81) & (data["lon"] > 10) & (data["lon"] < 27.5)]
     data = data[(data["alt"] > 50) & (data["alt"] < 2000)] 
 
     data["time_str"] = data["time_str"].str.zfill(8)

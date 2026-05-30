@@ -926,6 +926,9 @@ def create_renaming_plan():
             better_gps_track = None
             if "austfonna-profile-2025-100MHz-mala" in radar_id:
                 better_gps_track = level0_dir / r"Austfonna\2025\Level0_COP_Malå_100MHz\kinematic2025_ppp_1s_radar.zip"
+            if "austfonna-profile-2026" in radar_id:
+                better_gps_track = level0_dir / r"Austfonna\2026\radar2026_ppp_1s_all_prelim.zip" # CHANGE WHEN YOU GET THE FINAL ONE 
+
             preprocess_mala(
                 output_rad_filepath=renamed_files[".rad"][1],
                 input_rad_filepath=renamed_files[".rad"][0],

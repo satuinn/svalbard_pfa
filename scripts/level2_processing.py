@@ -124,8 +124,8 @@ def run_ridal(
     output_filepath = Path(output_filepath)
     tmp_path = output_filepath.with_name(output_filepath.name + ".tmp")
 
-    ridal.run_cli(
-        filepath=str(input_filepath),
+    ridal.process(
+        input_filepath,
         velocity=medium_velocity,
         steps=steps,
         output=str(tmp_path),
@@ -146,6 +146,43 @@ def normalize(data: np.ndarray, contrast: float = 0.9):
     return (data_abs * 255).astype("uint8")
 
 
+def contains_surrogates(s):
+    return any(0xD800 <= ord(ch) <= 0xDFFF for ch in s)
+
+def inspect_attr_value(value, path):
+    problems = []
+
+    if isinstance(value, str):
+        if contains_surrogates(value):
+            problems.append((path, value))
+
+    elif isinstance(value, bytes):
+        # bytes themselves are not necessarily bad, but useful to flag
+        problems.append((path, f"<bytes attr of length {len(value)}>"))
+
+    elif isinstance(value, (list, tuple, np.ndarray)):
+        arr = np.asarray(value, dtype=object)
+        for i, item in np.ndenumerate(arr):
+            if isinstance(item, str) and contains_surrogates(item):
+                problems.append((f"{path}{list(i)}", item))
+
+    return problems
+
+def find_bad_attrs(ds):
+    problems = []
+
+    # Global attrs
+    for k, v in ds.attrs.items():
+        problems.extend(inspect_attr_value(v, f"global attr '{k}'"))
+
+    # Variable + coordinate attrs
+    for var_name in ds.variables:
+        for k, v in ds[var_name].attrs.items():
+            problems.extend(inspect_attr_value(v, f"variable '{var_name}' attr '{k}'"))
+
+    return problems
+
+
 def fix_power_variation(filepath: Path):
     """Correct for horizontal variations in power in a dataset.
     This will overwrite the original data."""
@@ -159,22 +196,17 @@ def fix_power_variation(filepath: Path):
         if data.attrs.get("power_fixed", 0) == 1:
             print(f"Skipping power correction on {filepath}: it has already been done")
             return
+        
+        # This metadata contains non-ASCII characters and needs to be converted
+        data.projected_crs.attrs["crs_wkt"] = data.projected_crs.attrs["crs_wkt"].encode("utf-8", errors="replace").decode("utf-8")
 
         print(f"Estimating and applying power variation correction.")
         line = np.abs(data.data.isel(y=slice(data.y.shape[0] - 10, None))).mean("y").values
-        corr = lowfreq_corr(line, 1 / data.attrs["time-interval"])
-
-        # line = np.abs(data.data.isel(y=slice(data.y.shape[0] - 10))).mean("y").rolling(x=50, min_periods=1, center=True).mean().values
-        # corr = (1 - (line / line.mean()))
+        corr = lowfreq_corr(line, 1 / data.attrs["time_interval"])
 
         data["data"] *= 1 + corr[None, :] * (data["depth"] / data["depth"].max()).values[:, None]
 
         data.attrs["power_fixed"] = 1
-
-        # Force every attribute to be ASCII characters only. This stopped files from being saved on some computers
-        for key, value in data.attrs.items():
-            if isinstance(value, str):
-                data.attrs[key] = value.encode("ascii", errors="ignore").decode()
         
         data.to_netcdf(new_filepath, encoding={v: {"complevel": 9, "zlib": True} for v in data.data_vars})
 
@@ -326,7 +358,7 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
         if "austfonna-profile-2026" in radar_key:
             steps.remove("average_traces(2)")
 
-        if "austfonna-profile-2023" in radar_key or "austfonna-profile-2024" in radar_key:
+        if "austfonna-profile-2023" in radar_key or "austfonna-profile-2024" in radar_key or "austfonna-profile-2026" in radar_key:
             run_fix_power_variation = True
         
     # Steps if it's anything else than 800MHz
@@ -361,6 +393,7 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
     offsets = {
         "amundsenisen-profile-2025-100MHz-mala": (-4, -1),
         "amundsenisen-profile-2025-200MHz-pulseekko": (-2.5, -1.1),
+        "austfonna-profile-2026-800MHz-mala": (-1.7, -1.7), # height was 1.67 m before 3 May and after that 1.73 m
         "austfonna-profile-2025-100MHz-mala": (-2.5, -1.3),
         "austfonna-profile-2025-200MHz-pulseekko": (-2.15, -0.8),
         "austfonna-profile-2024-25MHz-mala": (-2.5, -1.3),
@@ -393,7 +426,7 @@ def process_radargram(output_filepath: Path, input_header_filepath: Path, radar_
     generate_jpgs(output_filepath, redo=True)
     
 
-def process_all_data(redo: bool = False): # True if you want to run everything again
+def process_all_data(redo: bool = True): # True if you want to run everything again
     """Process (level2) GPR data using rsgpr.
 
     Parameters
@@ -417,6 +450,9 @@ def process_all_data(redo: bool = False): # True if you want to run everything a
         # E.g. some_dir/level1/subdir/file.rad -> new_dir/level2/subdir/file.rad
         output_filepath = (level2_dir / "/".join(header_filepath.parts[slice(header_filepath.parts.index("level1") + 1, None)])).with_suffix(".nc")
 
+        year = int(output_filepath.stem.split("-")[2])
+        if year < 2026:
+            continue
         # if "austfonna-profile-2024-25MHz" in output_filepath.stem:
         #    redo = True
         # else:
